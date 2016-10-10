@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"github.com/SmarkSeven/golang-socket/protocol"
-
 	"github.com/SmarkSeven/golang-socket/route"
 )
 
@@ -21,10 +20,6 @@ type PushParam struct {
 	Datetime time.Time `json:"datetime"`
 	// Extra    map[string]interface{} `json:"extras"`
 }
-
-// type Extras struct {
-// 	StudentId int64
-// }
 
 type Info struct {
 	Id       int64

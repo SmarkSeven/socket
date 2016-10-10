@@ -10,10 +10,10 @@ import (
 	"github.com/SmarkSeven/golang-socket/route"
 )
 
-type MirrorController struct {
+type Controller struct {
 }
 
-func (this *MirrorController) Excute(message route.Message) interface{} {
+func (this *Controller) Excute(message route.Message) interface{} {
 	_, err := json.Marshal(message)
 	CheckError(err)
 	if time.Now().Unix()%2 == 0 {
@@ -34,10 +34,10 @@ func Log(v ...interface{}) {
 }
 
 func init() {
-	var mirror MirrorController
+	var controller Controller
 	kvs := make(map[string]string)
 	kvs["msgType"] = "send SMS"
-	route.Route(kvs, &mirror)
+	route.Route(kvs, &controller)
 }
 
 func main() {
