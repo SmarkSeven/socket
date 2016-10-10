@@ -4,12 +4,10 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
-	"net"
 	"os"
 	"time"
 
-	"github.com/SmarkSeven/golang-socket/protocol"
-	"github.com/SmarkSeven/golang-socket/route"
+	"github.com/SmarkSeven/socket"
 )
 
 type PushParam struct {
@@ -30,13 +28,13 @@ type Response struct {
 	Result     string `json:"result"`
 }
 
-func senderMsg(conn net.Conn) {
+func senderMsg(conn socket.Conn) {
 
 	kvs := make(map[string]string)
 	kvs["msgType"] = "send SMS"
 
-	msg := route.Message{
-		Conditions: kvs,
+	msg := socket.Message{
+		Rules: kvs,
 		Content: PushParam{
 			CoachId:     "13",
 			StudentName: "Sum",
@@ -49,7 +47,7 @@ func senderMsg(conn net.Conn) {
 	if err != nil {
 		fmt.Printf("Marchal err %#v", msg)
 	}
-	conn.Write(protocol.Packet(data))
+	conn.WriteData(data)
 	buffer := make([]byte, 2048)
 	n, err := conn.Read(buffer)
 	var message Response
@@ -62,14 +60,14 @@ func senderMsg(conn net.Conn) {
 }
 
 func main() {
-	server := "localhost:6060"
-	tcpAddr, err := net.ResolveTCPAddr("tcp4", server)
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "Fatal error: %s", err.Error())
-		os.Exit(1)
-	}
+	// server := "localhost:6060"
+	// tcpAddr, err := net.ResolveTCPAddr("tcp4", server)
+	// if err != nil {
+	// 	fmt.Fprintf(os.Stderr, "Fatal error: %s", err.Error())
+	// 	os.Exit(1)
+	// }
 
-	conn, err := net.DialTCP("tcp", nil, tcpAddr)
+	conn, err := socket.Dial("tcp", ":6060")
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Fatal error: %s", err.Error())
 		os.Exit(1)

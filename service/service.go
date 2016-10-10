@@ -7,13 +7,13 @@ import (
 	"os"
 	"time"
 
-	"github.com/SmarkSeven/golang-socket/route"
+	"github.com/SmarkSeven/socket"
 )
 
 type Controller struct {
 }
 
-func (this *Controller) Excute(message route.Message) interface{} {
+func (this *Controller) Excute(message socket.Message) interface{} {
 	_, err := json.Marshal(message)
 	CheckError(err)
 	if time.Now().Unix()%2 == 0 {
@@ -37,7 +37,7 @@ func init() {
 	var controller Controller
 	kvs := make(map[string]string)
 	kvs["msgType"] = "send SMS"
-	route.Route(kvs, &controller)
+	socket.Route(kvs, &controller)
 }
 
 func main() {
@@ -52,6 +52,6 @@ func main() {
 		}
 		Log(conn.RemoteAddr().String(), " tcp connect success")
 		// 如果此链接超过6秒没有发送新的数据，将被关闭
-		go route.HandleConnection(conn, 6)
+		go socket.HandleConnection(socket.Conn{conn}, 6)
 	}
 }

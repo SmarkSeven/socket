@@ -1,4 +1,4 @@
-package route
+package socket
 
 import (
 	"encoding/json"
@@ -7,21 +7,19 @@ import (
 	"net"
 	"reflect"
 	"time"
-
-	"github.com/SmarkSeven/golang-socket/protocol"
 )
 
 type Message struct {
-	Conditions map[string]string `json:"meta"`
-	Content    interface{}       `json:"content"`
+	Rules   map[string]string `json:"meta"`
+	Content interface{}       `json:"content"`
 }
 
-type Response struct {
+type response struct {
 	StatusCode string      `json:"statusCode"`
 	Result     interface{} `result`
 }
 
-func business(conn net.Conn, data []byte) {
+func business(conn Conn, data []byte) {
 	// flag := false
 	var message Message
 	err := json.Unmarshal(data, &message)
@@ -33,7 +31,7 @@ func business(conn net.Conn, data []byte) {
 		act := v[1]
 		if pred.(func(entry Message) bool)(message) {
 			result := act.(Controller).Excute(message)
-			_, err := WriteResult(conn, result)
+			_, err := writeResult(conn, result)
 			if err != nil {
 				Log("conn.WriteResult()", err)
 			}
@@ -41,13 +39,13 @@ func business(conn net.Conn, data []byte) {
 		}
 	}
 
-	_, err = WriteError(conn, "1111", "不能处理此类型的业务")
+	_, err = writeError(conn, "1111", "不能处理此类型的业务")
 	if err != nil {
 		Log("conn.WriteError()", err)
 	}
 }
 
-func reader(conn net.Conn, readerChannel <-chan []byte, timeout int) {
+func reader(conn Conn, readerChannel <-chan []byte, timeout int) {
 	for {
 		select {
 		case data := <-readerChannel:
@@ -63,7 +61,7 @@ func reader(conn net.Conn, readerChannel <-chan []byte, timeout int) {
 }
 
 // HandleConnection 处理长连接
-func HandleConnection(conn net.Conn, timeout int) {
+func HandleConnection(conn Conn, timeout int) {
 	//声明一个临时缓冲区，用来存储被截断的数据
 	var tmpBuffer []byte
 
@@ -85,36 +83,13 @@ func HandleConnection(conn net.Conn, timeout int) {
 			Log(conn.RemoteAddr().String(), " connection error: ", err, reflect.TypeOf(err))
 			return
 		}
-		tmpBuffer = protocol.Unpack(append(tmpBuffer, buffer[:n]...), readerChannel)
+		tmpBuffer = unpack(append(tmpBuffer, buffer[:n]...), readerChannel)
 	}
 
-}
-
-// WriteResult 向client写入结果
-func WriteResult(conn net.Conn, result interface{}) (n int, err error) {
-	data, err := json.Marshal(Response{StatusCode: "0000", Result: result})
-	if err != nil {
-		return 0, err
-	}
-	return conn.Write(data)
-}
-
-// WriteError 向client写入错误
-func WriteError(conn net.Conn, statusCode string, result interface{}) (n int, err error) {
-	data, err := json.Marshal(Response{StatusCode: statusCode, Result: result})
-	if err != nil {
-		return 0, err
-	}
-	return conn.Write(data)
 }
 
 func Log(v ...interface{}) {
 	log.Println(v...)
-}
-
-// Controller 消息处理器接口
-type Controller interface {
-	Excute(message Message) interface{}
 }
 
 // 路由
@@ -134,7 +109,7 @@ func Route(rule interface{}, controller Controller) {
 		{
 			defaultJudge := func(entry Message) bool {
 				for ruleKey, ruleValue := range rule.(map[string]string) {
-					val, ok := entry.Conditions[ruleKey]
+					val, ok := entry.Rules[ruleKey]
 					if !ok {
 						return false
 					}
