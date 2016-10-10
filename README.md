@@ -10,13 +10,13 @@ import (
 	"os"
 	"time"
 
-	"github.com/SmarkSeven/golang-socket/route"
+	"github.com/SmarkSeven/socket"
 )
 
 type Controller struct {
 }
 
-func (this *Controller) Excute(message route.Message) interface{} {
+func (this *Controller) Excute(message socket.Message) interface{} {
 	_, err := json.Marshal(message)
 	CheckError(err)
 	if time.Now().Unix()%2 == 0 {
@@ -39,10 +39,8 @@ func Log(v ...interface{}) {
 func init() {
 	var controller Controller
 	kvs := make(map[string]string)
- 
 	kvs["msgType"] = "send SMS"
-  // 注册规则和处理器
-	route.Route(kvs, &controller)
+	socket.Route(kvs, &controller)
 }
 
 func main() {
@@ -57,9 +55,10 @@ func main() {
 		}
 		Log(conn.RemoteAddr().String(), " tcp connect success")
 		// 如果此链接超过6秒没有发送新的数据，将被关闭
-		go route.HandleConnection(conn, 6)
+		go socket.HandleConnection(socket.Conn{conn}, 6)
 	}
 }
+
 ```
 
 ## client
@@ -68,12 +67,10 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
-	"net"
 	"os"
 	"time"
 
-	"github.com/SmarkSeven/golang-socket/protocol"
-	"github.com/SmarkSeven/golang-socket/route"
+	"github.com/SmarkSeven/socket"
 )
 
 type PushParam struct {
@@ -94,13 +91,13 @@ type Response struct {
 	Result     string `json:"result"`
 }
 
-func senderMsg(conn net.Conn) {
+func senderMsg(conn socket.Conn) {
 
 	kvs := make(map[string]string)
 	kvs["msgType"] = "send SMS"
 
-	msg := route.Message{
-		Conditions: kvs,
+	msg := socket.Message{
+		Rules: kvs,
 		Content: PushParam{
 			CoachId:     "13",
 			StudentName: "Sum",
@@ -113,8 +110,7 @@ func senderMsg(conn net.Conn) {
 	if err != nil {
 		fmt.Printf("Marchal err %#v", msg)
 	}
-   // 将数据打包后发送
-	conn.Write(protocol.Packet(data))
+	conn.WriteData(data)
 	buffer := make([]byte, 2048)
 	n, err := conn.Read(buffer)
 	var message Response
@@ -127,14 +123,14 @@ func senderMsg(conn net.Conn) {
 }
 
 func main() {
-	server := "localhost:6060"
-	tcpAddr, err := net.ResolveTCPAddr("tcp4", server)
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "Fatal error: %s", err.Error())
-		os.Exit(1)
-	}
+	// server := "localhost:6060"
+	// tcpAddr, err := net.ResolveTCPAddr("tcp4", server)
+	// if err != nil {
+	// 	fmt.Fprintf(os.Stderr, "Fatal error: %s", err.Error())
+	// 	os.Exit(1)
+	// }
 
-	conn, err := net.DialTCP("tcp", nil, tcpAddr)
+	conn, err := socket.Dial("tcp", ":6060")
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Fatal error: %s", err.Error())
 		os.Exit(1)
@@ -147,4 +143,5 @@ func main() {
 	}
 
 }
+
 ```
